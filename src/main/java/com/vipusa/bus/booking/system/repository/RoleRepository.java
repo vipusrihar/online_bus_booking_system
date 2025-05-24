@@ -1,0 +1,11 @@
+package com.vipusa.bus.booking.system.repository;
+
+import com.vipusa.bus.booking.system.defaults.USER_ROLE;
+import com.vipusa.bus.booking.system.entity.Role;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RoleRepository extends JpaRepository<Role, Long> {
+    Role findByRoleName(USER_ROLE roleName);
+}
