@@ -1,6 +1,6 @@
 package com.vipusa.bus.booking.system.exception;
 
-import com.vipusa.bus.booking.system.DTO.ApiResponse;
+import com.vipusa.bus.booking.system.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;

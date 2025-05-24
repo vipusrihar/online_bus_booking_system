@@ -1,7 +1,7 @@
 package com.vipusa.bus.booking.system.service;
 
-import com.vipusa.bus.booking.system.DTO.EditBookingRequest;
-import com.vipusa.bus.booking.system.DTO.CreateBookingRequest;
+import com.vipusa.bus.booking.system.request.EditBookingRequest;
+import com.vipusa.bus.booking.system.request.CreateBookingRequest;
 import com.vipusa.bus.booking.system.entity.Booking;
 import com.vipusa.bus.booking.system.repository.BookingRepository;
 import com.vipusa.bus.booking.system.repository.UserRepository;

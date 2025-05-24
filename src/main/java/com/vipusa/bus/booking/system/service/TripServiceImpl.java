@@ -1,6 +1,6 @@
 package com.vipusa.bus.booking.system.service;
 
-import com.vipusa.bus.booking.system.DTO.CreateTripRequest;
+import com.vipusa.bus.booking.system.request.CreateTripRequest;
 import com.vipusa.bus.booking.system.entity.Trip;
 import org.springframework.stereotype.Component;
 

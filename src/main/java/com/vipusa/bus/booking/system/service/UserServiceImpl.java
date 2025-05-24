@@ -1,6 +1,6 @@
 package com.vipusa.bus.booking.system.service;
 
-import com.vipusa.bus.booking.system.DTO.EditUserRequest;
+import com.vipusa.bus.booking.system.request.EditUserRequest;
 import com.vipusa.bus.booking.system.entity.User;
 import com.vipusa.bus.booking.system.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

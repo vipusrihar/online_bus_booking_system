@@ -1,8 +1,8 @@
 package com.vipusa.bus.booking.system.service;
 
-import com.vipusa.bus.booking.system.DTO.ApiResponse;
-import com.vipusa.bus.booking.system.DTO.LoginRequestDto;
-import com.vipusa.bus.booking.system.DTO.SignUpRequestDto;
+import com.vipusa.bus.booking.system.response.ApiResponse;
+import com.vipusa.bus.booking.system.request.LoginRequestDto;
+import com.vipusa.bus.booking.system.request.SignUpRequestDto;
 import com.vipusa.bus.booking.system.RoleFactory;
 import com.vipusa.bus.booking.system.config.jwt.JwtUtils;
 import com.vipusa.bus.booking.system.entity.Role;
@@ -13,9 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 

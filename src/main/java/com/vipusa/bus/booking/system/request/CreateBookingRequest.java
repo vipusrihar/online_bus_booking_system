@@ -1,4 +1,4 @@
-package com.vipusa.bus.booking.system.DTO;
+package com.vipusa.bus.booking.system.request;
 
 import com.vipusa.bus.booking.system.entity.Trip;
 import jakarta.validation.constraints.NotBlank;

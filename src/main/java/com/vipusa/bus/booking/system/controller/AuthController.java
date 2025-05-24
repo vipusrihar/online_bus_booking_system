@@ -1,8 +1,8 @@
 package com.vipusa.bus.booking.system.controller;
 
-import com.vipusa.bus.booking.system.DTO.ApiResponse;
-import com.vipusa.bus.booking.system.DTO.LoginRequestDto;
-import com.vipusa.bus.booking.system.DTO.SignUpRequestDto;
+import com.vipusa.bus.booking.system.response.ApiResponse;
+import com.vipusa.bus.booking.system.request.LoginRequestDto;
+import com.vipusa.bus.booking.system.request.SignUpRequestDto;
 import com.vipusa.bus.booking.system.exception.RoleNotFoundException;
 import com.vipusa.bus.booking.system.exception.UserAlreadyExistsException;
 import com.vipusa.bus.booking.system.service.AuthService;

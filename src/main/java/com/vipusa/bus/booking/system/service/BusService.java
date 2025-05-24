@@ -1,6 +1,6 @@
 package com.vipusa.bus.booking.system.service;
 
-import com.vipusa.bus.booking.system.DTO.CreateBusRequest;
+import com.vipusa.bus.booking.system.request.CreateBusRequest;
 import com.vipusa.bus.booking.system.defaults.BUS_TYPE;
 import com.vipusa.bus.booking.system.defaults.DEPOTS;
 import com.vipusa.bus.booking.system.entity.Bus;

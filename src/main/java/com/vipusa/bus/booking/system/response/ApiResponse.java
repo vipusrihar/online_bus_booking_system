@@ -1,4 +1,4 @@
-package com.vipusa.bus.booking.system.DTO;
+package com.vipusa.bus.booking.system.response;
 
 import lombok.*;
 

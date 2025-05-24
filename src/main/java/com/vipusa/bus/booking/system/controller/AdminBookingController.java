@@ -1,7 +1,7 @@
 package com.vipusa.bus.booking.system.controller;
 
-import com.vipusa.bus.booking.system.DTO.ApiResponse;
-import com.vipusa.bus.booking.system.DTO.EditBookingRequest;
+import com.vipusa.bus.booking.system.response.ApiResponse;
+import com.vipusa.bus.booking.system.request.EditBookingRequest;
 import com.vipusa.bus.booking.system.entity.Booking;
 import com.vipusa.bus.booking.system.service.BookingService;
 import jakarta.validation.Valid;

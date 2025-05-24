@@ -1,6 +1,6 @@
 package com.vipusa.bus.booking.system.service;
 
-import com.vipusa.bus.booking.system.DTO.CreateRouteRequest;
+import com.vipusa.bus.booking.system.request.CreateRouteRequest;
 import com.vipusa.bus.booking.system.entity.Route;
 import org.springframework.stereotype.Component;
 
