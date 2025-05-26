@@ -1,10 +1,11 @@
 package com.vipusa.bus.booking.system.defaults;
 
+
 public enum BUS_TYPE {
-    TYPE_NORMAL,
+    NORMAL,
 
-    TYPE_HALF,
+    HALF,
 
-    TYPE_AC,
+    AC,
 
 }
