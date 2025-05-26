@@ -4,6 +4,7 @@ import com.vipusa.bus.booking.system.request.EditUserRequest;
 import com.vipusa.bus.booking.system.entity.User;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -12,11 +13,13 @@ public interface UserService {
 
     boolean existsByEmail(String email);
 
-    void save(User user);
+    User save(User user);
 
     Optional<User> findByEmail(String email);
 
     Optional<User> getUserById(Long userId);
+
+    List<User> getAllUser();
 
     User editUser(Long userId, EditUserRequest request);
 

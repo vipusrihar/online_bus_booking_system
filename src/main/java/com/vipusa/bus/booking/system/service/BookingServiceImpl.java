@@ -1,5 +1,6 @@
 package com.vipusa.bus.booking.system.service;
 
+import com.vipusa.bus.booking.system.entity.User;
 import com.vipusa.bus.booking.system.request.EditBookingRequest;
 import com.vipusa.bus.booking.system.request.CreateBookingRequest;
 import com.vipusa.bus.booking.system.entity.Booking;
@@ -21,9 +22,10 @@ public class BookingServiceImpl implements BookingService{
 
     @Override
     public Booking createBooking(Long userId, CreateBookingRequest bookingRequest) {
-//        Booking booking = new Booking();
-//        User user = userRepository.findById(userId);
-//        booking.setUser(user);
+        Booking booking = new Booking();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+        booking.setUser(user);
 //        booking.setTrip();
         return null;
     }
