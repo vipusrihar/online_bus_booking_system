@@ -4,6 +4,7 @@ import com.vipusa.bus.booking.system.request.CreateTripRequest;
 import com.vipusa.bus.booking.system.entity.Trip;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,11 +13,11 @@ public interface TripService {
 
     Trip createTrip(CreateTripRequest request);
 
-    Optional<Trip> getTripById(Long tripId);
+    Optional<Trip> findTripById(Long tripId);
 
-    List<Trip> getAllTrip();
+    List<Trip> getAllTrips();
 
-    List<Trip> getTripStaringAtASpecificDay(String date);
+    List<Trip> getTripStartingAtASpecificDay(String date);
 
     List<Trip> getTripEndingAtASpecificDay(String date);
 
@@ -24,7 +25,7 @@ public interface TripService {
 
     List<Trip> getAllTripSpecificRoute(Long routeId);
 
-    List<Trip> getAllTripWithinSpecificTime(String startTime, String EndTime);
+    List<Trip> getAllTripStartTimeBetween(LocalDateTime start, LocalDateTime end);
 
     boolean deleteTrip(Long TripId);
 

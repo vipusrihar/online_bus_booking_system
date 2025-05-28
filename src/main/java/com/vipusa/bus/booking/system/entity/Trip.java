@@ -6,6 +6,7 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @AllArgsConstructor
@@ -34,8 +35,8 @@ public class Trip {
     private LocalTime endTime;
 
     @ElementCollection
-    private List<Integer> availableSeats;
+    @MapKeyColumn(name = "seat_number")
+    @Column(name = "is_booked")
+    private Map<Integer, Boolean> seatStatus;
 
-    @ElementCollection
-    private List<Integer> bookedSeats;
 }
