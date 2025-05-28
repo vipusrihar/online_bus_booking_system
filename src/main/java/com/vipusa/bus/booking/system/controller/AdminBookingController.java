@@ -6,90 +6,124 @@ import com.vipusa.bus.booking.system.entity.Booking;
 import com.vipusa.bus.booking.system.service.BookingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/admin/booking")
 public class AdminBookingController {
 
-    @Autowired
-    private BookingService bookingService;
+    private final BookingService bookingService;
+
+    public AdminBookingController(BookingService bookingService) {
+        this.bookingService = bookingService;
+    }
 
     @GetMapping("/allBookings/{tripId}")
-    public ResponseEntity<ApiResponse<?>> getAllBookingsByTripId(
+    public ResponseEntity<ApiResponse<List<Booking>>> getAllBookingsByTripId(
             @PathVariable @Min(1) Long tripId) {
+        log.info("Fetching all bookings for trip ID: {}", tripId);
         try {
             List<Booking> bookings = bookingService.getAllBookingByTripId(tripId);
-            boolean found = !bookings.isEmpty();
-            return ResponseEntity.ok().body(ApiResponse.builder()
-                    .isSuccess(found)
-                    .message(found ? bookings.size() + " Booking(s) Found" : "No Bookings Found For This Trip")
-                    .response(bookings)
-                    .build());
+
+            if (bookings.isEmpty()) {
+                log.info("No bookings found for trip ID: {}", tripId);
+                return ResponseEntity.ok()
+                        .body(ApiResponse.<List<Booking>>builder()
+                                .isSuccess(false)
+                                .message("No bookings found for this trip")
+                                .response(bookings)
+                                .build());
+            }
+
+            log.info("Found {} bookings for trip ID: {}", bookings.size(), tripId);
+            return ResponseEntity.ok()
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(true)
+                            .message(bookings.size() + " booking(s) found")
+                            .response(bookings)
+                            .build());
         } catch (Exception e) {
+            log.error("Error fetching bookings for trip ID {}: {}", tripId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.builder()
+                    .body(ApiResponse.<List<Booking>>builder()
                             .isSuccess(false)
-                            .message("Error Retrieving Bookings: " + e.getMessage())
+                            .message("Failed to retrieve bookings: " + e.getMessage())
                             .response(null)
                             .build());
         }
     }
 
     @GetMapping("/allBookings/user/{userId}")
-    public ResponseEntity<ApiResponse<?>> getAllBookingByUserId(
+    public ResponseEntity<ApiResponse<List<Booking>>> getAllBookingByUserId(
             @PathVariable @Min(1) Long userId) {
+        log.info("Fetching all bookings for user ID: {}", userId);
         try {
             List<Booking> bookings = bookingService.getAllBookingByUserId(userId);
-            boolean found = !bookings.isEmpty();
-            return ResponseEntity.ok().body(ApiResponse.builder()
-                    .isSuccess(found)
-                    .message(found ? bookings.size() + " Booking(s) Found" : "No Bookings Found For This User")
-                    .response(bookings)
-                    .build());
+
+            if (bookings.isEmpty()) {
+                log.info("No bookings found for user ID: {}", userId);
+                return ResponseEntity.ok()
+                        .body(ApiResponse.<List<Booking>>builder()
+                                .isSuccess(false)
+                                .message("No bookings found for this user")
+                                .response(bookings)
+                                .build());
+            }
+
+            log.info("Found {} bookings for user ID: {}", bookings.size(), userId);
+            return ResponseEntity.ok()
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(true)
+                            .message(bookings.size() + " booking(s) found")
+                            .response(bookings)
+                            .build());
         } catch (Exception e) {
+            log.error("Error fetching bookings for user ID {}: {}", userId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.builder()
+                    .body(ApiResponse.<List<Booking>>builder()
                             .isSuccess(false)
-                            .message("Error Retrieving Bookings: " + e.getMessage())
+                            .message("Failed to retrieve bookings: " + e.getMessage())
                             .response(null)
                             .build());
         }
     }
 
-
     @PutMapping("/changeBooking/{userId}")
-    public ResponseEntity<ApiResponse<?>> changeBookingByUserId(
+    public ResponseEntity<ApiResponse<Booking>> changeBookingByUserId(
             @PathVariable @Min(1) Long userId,
             @RequestBody @Valid EditBookingRequest changeRequest) {
 
+        log.info("Attempting to change booking for user ID: {}", userId);
         try {
             Booking updatedBooking = bookingService.changeBooking(userId, changeRequest);
+            log.info("Successfully updated booking for user ID: {}", userId);
 
             return ResponseEntity.ok()
-                    .body(ApiResponse.builder()
+                    .body(ApiResponse.<Booking>builder()
                             .isSuccess(true)
                             .message("Booking updated successfully")
                             .response(updatedBooking)
                             .build());
-
         } catch (IllegalArgumentException e) {
+            log.warn("Bad request when changing booking for user {}: {}", userId, e.getMessage());
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.builder()
+                    .body(ApiResponse.<Booking>builder()
                             .isSuccess(false)
                             .message(e.getMessage())
                             .response(null)
                             .build());
         } catch (Exception e) {
+            log.error("Error updating booking for user ID {}: {}", userId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.builder()
+                    .body(ApiResponse.<Booking>builder()
                             .isSuccess(false)
-                            .message("Error updating booking: " + e.getMessage())
+                            .message("Failed to update booking: " + e.getMessage())
                             .response(null)
                             .build());
         }

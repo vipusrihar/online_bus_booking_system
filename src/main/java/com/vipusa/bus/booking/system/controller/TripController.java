@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -101,7 +102,7 @@ public class TripController {
 
             if (tripList == null || tripList.isEmpty()) {
                 log.warn("No trips found in database");
-                return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.<List<Trip>>builder()
                                 .response(Collections.emptyList())
                                 .isSuccess(false)
@@ -163,7 +164,7 @@ public class TripController {
         }
     }
 
-    @GetMapping("/start/{data}")
+    @GetMapping("/start/{date}")
     public ResponseEntity<ApiResponse<List<Trip>>> getTripStaringAtASpecificDay(@PathVariable String date){
         log.info("Fetching the trip starting at {}",date);
         try {
@@ -198,7 +199,7 @@ public class TripController {
         }
     }
 
-    @GetMapping("/end/{data}")
+    @GetMapping("/end/{date}")
     public ResponseEntity<ApiResponse<List<Trip>>> getTripEndingAtASpecificDay(@PathVariable String date){
         log.info("Fetching the trip ending at {}",date);
         try {
@@ -305,11 +306,11 @@ public class TripController {
 
     @GetMapping("/time")
     public ResponseEntity<ApiResponse<List<Trip>>> getAllTripWithinSpecificTime(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endTime) {
 
         try {
-            List<Trip> trips = tripService.getAllTripStartTimeBetween(startTime, endTime);
+            List<Trip> trips = tripService.getAllTripStartDateBetween(startTime, endTime);
             return ResponseEntity.ok(
                     ApiResponse.<List<Trip>>builder()
                             .isSuccess(true)

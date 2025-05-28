@@ -98,8 +98,8 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
-    public List<Trip> getAllTripStartTimeBetween(LocalDateTime start, LocalDateTime end) {
-        return tripRepository.findByStartTimeBetween(start, end);
+    public List<Trip> getAllTripStartDateBetween(LocalDate start, LocalDate end) {
+        return tripRepository.findByStartDateBetween(start, end);
     }
 
     @Override
