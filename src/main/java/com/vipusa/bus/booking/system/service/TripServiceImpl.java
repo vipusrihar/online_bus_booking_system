@@ -10,6 +10,7 @@ import com.vipusa.bus.booking.system.entity.Trip;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -39,11 +40,42 @@ public class TripServiceImpl implements TripService {
 
         Trip trip = new Trip();
         Bus bus = busRepository.findById(request.getBusId())
-                .orElseThrow(() -> new RuntimeException("No Bus Found with ID "+ request.getBusId()));
-        trip.setBus(bus);
+                .orElseThrow(() -> new RuntimeException("No Bus Found with ID " + request.getBusId()));
+
+        //Combine date and time into LocalDateTime
+        LocalDateTime newStart = LocalDateTime.of(request.getStartDate(), request.getStartTime());
+        LocalDateTime newEnd = LocalDateTime.of(request.getEndDate(), request.getEndTime());
+
+        //Check if the bus has any conflicting trips
+        List<Trip> existingTrips = tripRepository.findByBus_Id(request.getBusId());
+
+        for (Trip existing : existingTrips) {
+            LocalDateTime existingStart = LocalDateTime.of(existing.getStartDate(), existing.getStartTime());
+            LocalDateTime existingEnd = LocalDateTime.of(existing.getEndDate(), existing.getEndTime());
+
+            //Check for overlap
+            if (newStart.isBefore(existingEnd) && newEnd.isAfter(existingStart)) {
+                throw new RuntimeException("Trip time overlaps with an existing trip.");
+            }
+
+            //Check if there's at least 9 hours break
+            if (newStart.isAfter(existingEnd)) {
+                Duration breakDuration = Duration.between(existingEnd, newStart);
+                if (breakDuration.toHours() < 9) {
+                    throw new RuntimeException("Bus must have at least 9 hours break between trips.");
+                }
+            }
+
+            if (newEnd.isBefore(existingStart)) {
+                Duration breakDuration = Duration.between(newEnd, existingStart);
+                if (breakDuration.toHours() < 9) {
+                    throw new RuntimeException("Bus must have at least 9 hours break between trips.");
+                }
+            }
+        }
 
         Route route = routeRepository.findById(request.getRouteId())
-                .orElseThrow(() -> new RuntimeException("No Route Found with ID "+ request.getRouteId()));
+                .orElseThrow(() -> new RuntimeException("No Route Found with ID " + request.getRouteId()));
         trip.setRoute(route);
 
         trip.setStartDate(request.getStartDate());
@@ -51,8 +83,10 @@ public class TripServiceImpl implements TripService {
         trip.setEndDate(request.getEndDate());
         trip.setEndTime(request.getEndTime());
 
-        int totalSeats = bus.getTotalSeats();
+        trip.setBus(bus);
 
+        // Initialize seat status all seats unbooked
+        int totalSeats = bus.getTotalSeats();
         Map<Integer, Boolean> seatStatus = new HashMap<>();
         for (int i = 1; i <= totalSeats; i++) {
             seatStatus.put(i, false);

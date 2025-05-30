@@ -5,7 +5,6 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.Map;
 
 @Entity
@@ -20,23 +19,20 @@ public class Trip {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
-    private Bus bus;
+    @ManyToOne
+    private Bus bus; // Many trips can use the same bus
 
-    @OneToOne
-    private Route route;
+    @ManyToOne
+    private Route route; // Many trips can follow the same route
 
     private LocalDate startDate;
-
     private LocalTime startTime;
 
     private LocalDate endDate;
-
     private LocalTime endTime;
 
     @ElementCollection
     @MapKeyColumn(name = "seat_number")
     @Column(name = "is_booked")
     private Map<Integer, Boolean> seatStatus;
-
 }
