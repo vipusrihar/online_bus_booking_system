@@ -1,5 +1,6 @@
 package com.vipusa.bus.booking.system.controller;
 
+import com.vipusa.bus.booking.system.defaults.BookingStatus;
 import com.vipusa.bus.booking.system.response.ApiResponse;
 import com.vipusa.bus.booking.system.request.CreateBookingRequest;
 import com.vipusa.bus.booking.system.entity.Booking;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -51,17 +53,55 @@ public class BookingController {
         }
     }
 
-    @PutMapping("/{userId}/{tripId}/cancel")
+
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<ApiResponse<Booking>> getBookingById(
+            @PathVariable @Min(1) Long bookingId) {
+
+        log.info("Fetching booking with ID: {}", bookingId);
+
+        try {
+            Booking booking = bookingService.getBookingById(bookingId);
+
+            if (booking == null || booking.getStatus() == BookingStatus.CANCELED) {
+                log.warn("Booking not found - ID: {}", bookingId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.<Booking>builder()
+                                .response(null)
+                                .isSuccess(false)
+                                .message("Booking not found")
+                                .build());
+            }
+
+            return ResponseEntity.ok()
+                    .body(ApiResponse.<Booking>builder()
+                            .response(booking)
+                            .isSuccess(true)
+                            .message("Booking retrieved successfully")
+                            .build());
+        } catch (Exception e) {
+            log.error("Error fetching booking ID {} : {}", bookingId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<Booking>builder()
+                            .response(null)
+                            .isSuccess(false)
+                            .message("Failed to retrieve booking")
+                            .build());
+        }
+    }
+
+
+    @PutMapping("/{userId}/cancel/{bookingId}")
     public ResponseEntity<ApiResponse<Boolean>> cancelBooking(
             @PathVariable @Min(1) Long userId,
-            @PathVariable @Min(1) Long tripId) {
+            @PathVariable @Min(1) Long bookingId) {
 
-        log.info("Attempting to cancel booking for user {} and trip {}", userId, tripId);
+        log.info("Attempting to cancel booking for user {} and booking {}", userId, bookingId);
         try {
-            boolean isCancelled = bookingService.cancelBooking(userId, tripId);
+            boolean isCancelled = bookingService.cancelBooking(userId, bookingId);
 
             if (!isCancelled) {
-                log.warn("Cancellation failed for user {} and trip {}", userId, tripId);
+                log.warn("Cancellation failed for user {} and booking {}", userId, bookingId);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(ApiResponse.<Boolean>builder()
                                 .response(false)
@@ -70,7 +110,7 @@ public class BookingController {
                                 .build());
             }
 
-            log.info("Booking cancelled successfully for user {} and trip {}", userId, tripId);
+            log.info("Booking cancelled successfully for user {} and booking {}", userId, bookingId);
             return ResponseEntity.ok()
                     .body(ApiResponse.<Boolean>builder()
                             .response(true)
@@ -78,7 +118,7 @@ public class BookingController {
                             .isSuccess(true)
                             .build());
         } catch (Exception e) {
-            log.error("Error cancelling booking for user {} and trip {}: {}", userId, tripId, e.getMessage(), e);
+            log.error("Error cancelling booking for user {} and booking {}: {}", userId, bookingId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.<Boolean>builder()
                             .response(false)
@@ -88,29 +128,80 @@ public class BookingController {
         }
     }
 
-    @GetMapping("/{userId}/allBookings")
-    public ResponseEntity<ApiResponse<List<Booking>>> getAllBookingOfUser(
+    @GetMapping("/{userId}/canceledBookings")
+    public ResponseEntity<ApiResponse<List<Booking>>> getCanceledBookings(
+            @PathVariable @Min(1) Long userId) {
+        log.info("Fetching all cancelled bookings for user ID: {}", userId);
+
+
+        try {
+            List<Booking> bookings = bookingService.getAllCanceledBookingsByUserId(userId);
+
+            if (bookings.isEmpty()) {
+                log.info("No cancelled bookings found for user ID: {}", userId);
+                return ResponseEntity.ok(ApiResponse.<List<Booking>>builder()
+                        .isSuccess(true)
+                        .message("No cancelled bookings found")
+                        .response(Collections.emptyList())
+                        .build());
+            }
+
+
+            log.debug("Found {} cancelled bookings for user ID: {}", bookings.size(), userId);
+            return ResponseEntity.ok(
+                    ApiResponse.<List<Booking>>builder()
+                            .response(bookings)
+                            .message(bookings.size()+" Canceled bookings retrieved")
+                            .isSuccess(true)
+                            .build()
+            );
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request for user ID {}: {}", userId, e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(false)
+                            .message(e.getMessage())
+                            .response(null)
+                            .build());
+        } catch (Exception e) {
+            log.error("Error fetching cancelled bookings for user ID {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(false)
+                            .message("Failed to retrieve cancelled bookings")
+                            .response(null)
+                            .build());
+        }
+
+
+
+
+
+    }
+
+    @GetMapping("/{userId}/allBookings/active")
+    public ResponseEntity<ApiResponse<List<Booking>>> getAllActiveBookingOfUser(
             @PathVariable @Min(1) Long userId) {
 
         log.info("Fetching all bookings for user ID: {}", userId);
         try {
-            List<Booking> bookings = bookingService.getAllBookingByUserId(userId);
+            List<Booking> bookings = bookingService.getAllActiveBookingByUserId(userId);
 
             if (bookings.isEmpty()) {
                 log.info("No bookings found for user ID: {}", userId);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.<List<Booking>>builder()
-                                .isSuccess(false)
-                                .message("No bookings found for user ID: " + userId)
-                                .response(null)
-                                .build());
+                return ResponseEntity.ok(ApiResponse.<List<Booking>>builder()
+                        .isSuccess(true)
+                        .message("No bookings found")
+                        .response(Collections.emptyList())
+                        .build());
             }
+
 
             log.debug("Found {} bookings for user ID: {}", bookings.size(), userId);
             return ResponseEntity.ok()
                     .body(ApiResponse.<List<Booking>>builder()
                             .isSuccess(true)
-                            .message("Successfully retrieved bookings")
+                            .message( bookings.size()+" Successfully retrieved bookings")
                             .response(bookings)
                             .build());
         } catch (IllegalArgumentException e) {
@@ -132,39 +223,92 @@ public class BookingController {
         }
     }
 
-    @GetMapping("/{userId}/{bookingId}")
-    public ResponseEntity<ApiResponse<Booking>> getBookingById(
-            @PathVariable @Min(1) Long userId,
-            @PathVariable @Min(1) Long bookingId) {
+    @GetMapping("/{userId}/allBookings/hold")
+    public ResponseEntity<ApiResponse<List<Booking>>> getAllHoldBookingOfUser(
+            @PathVariable @Min(1) Long userId) {
 
-        log.info("Fetching booking ID {} for user ID {}", bookingId, userId);
+        log.info("Fetching hold all bookings for user ID: {}", userId);
         try {
-            Booking booking = bookingService.getBookingById(bookingId, userId);
+            List<Booking> bookings = bookingService.getAllHoldBookingByUserId(userId);
 
-            if (booking == null) {
-                log.warn("Booking not found - ID: {}, User ID: {}", bookingId, userId);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.<Booking>builder()
-                                .response(null)
-                                .isSuccess(false)
-                                .message("Booking not found")
-                                .build());
+            if (bookings.isEmpty()) {
+                log.info("No hold bookings found for user ID: {}", userId);
+                return ResponseEntity.ok(ApiResponse.<List<Booking>>builder()
+                        .isSuccess(true)
+                        .message("No hold bookings found")
+                        .response(Collections.emptyList())
+                        .build());
             }
 
+
+            log.debug("Found {} hold bookings for user ID: {}", bookings.size(), userId);
             return ResponseEntity.ok()
-                    .body(ApiResponse.<Booking>builder()
-                            .response(booking)
+                    .body(ApiResponse.<List<Booking>>builder()
                             .isSuccess(true)
-                            .message("Booking retrieved successfully")
+                            .message(bookings.size() + " Successfully retrieved  hold bookings")
+                            .response(bookings)
+                            .build());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request for user ID {}: {}", userId, e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(false)
+                            .message(e.getMessage())
+                            .response(null)
                             .build());
         } catch (Exception e) {
-            log.error("Error fetching booking ID {} for user {}: {}", bookingId, userId, e.getMessage(), e);
+            log.error("Error fetching hold bookings for user ID {}: {}", userId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.<Booking>builder()
-                            .response(null)
+                    .body(ApiResponse.<List<Booking>>builder()
                             .isSuccess(false)
-                            .message("Failed to retrieve booking")
+                            .message("Failed to retrieve hold bookings")
+                            .response(null)
                             .build());
         }
     }
+
+    @GetMapping("/{userId}/allBookings/changed")
+    public ResponseEntity<ApiResponse<List<Booking>>> getAllChangedBookingOfUser(
+            @PathVariable @Min(1) Long userId) {
+
+        log.info("Fetching changed all bookings for user ID: {}", userId);
+        try {
+            List<Booking> bookings = bookingService.getAllChangedBookingByUserId(userId);
+
+            if (bookings.isEmpty()) {
+                log.info("No change bookings found for user ID: {}", userId);
+                return ResponseEntity.ok(ApiResponse.<List<Booking>>builder()
+                        .isSuccess(true)
+                        .message("No change bookings found")
+                        .response(Collections.emptyList())
+                        .build());
+            }
+
+
+            log.debug("Found {} change bookings for user ID: {}", bookings.size(), userId);
+            return ResponseEntity.ok()
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(true)
+                            .message(bookings.size() + " Successfully retrieved  change bookings")
+                            .response(bookings)
+                            .build());
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid request for user ID {}: {}", userId, e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(false)
+                            .message(e.getMessage())
+                            .response(null)
+                            .build());
+        } catch (Exception e) {
+            log.error("Error fetching change bookings for user ID {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(false)
+                            .message("Failed to retrieve change bookings")
+                            .response(null)
+                            .build());
+        }
+    }
+
 }

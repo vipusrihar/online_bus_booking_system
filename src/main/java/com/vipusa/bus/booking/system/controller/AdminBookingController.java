@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -94,14 +95,15 @@ public class AdminBookingController {
         }
     }
 
-    @PutMapping("/changeBooking/{userId}")
+    @PutMapping("/changeBooking/{userId}/{bookingId}")
     public ResponseEntity<ApiResponse<Booking>> changeBookingByUserId(
+            @PathVariable @Min(1) Long bookingId,
             @PathVariable @Min(1) Long userId,
             @RequestBody @Valid EditBookingRequest changeRequest) {
 
         log.info("Attempting to change booking for user ID: {}", userId);
         try {
-            Booking updatedBooking = bookingService.changeBooking(userId, changeRequest);
+            Booking updatedBooking = bookingService.changeBooking(userId,bookingId, changeRequest);
             log.info("Successfully updated booking for user ID: {}", userId);
 
             return ResponseEntity.ok()
@@ -128,4 +130,39 @@ public class AdminBookingController {
                             .build());
         }
     }
+
+    @GetMapping("/allBookings")
+    public ResponseEntity<ApiResponse<List<Booking>>> getAllBookings() {
+        log.info("Fetching all bookings");
+        try {
+            List<Booking> bookings = bookingService.getAllBooking();
+
+            if (bookings.isEmpty()) {
+                log.info("No bookings found");
+                return ResponseEntity.ok()
+                        .body(ApiResponse.<List<Booking>>builder()
+                                .isSuccess(false)
+                                .message("No bookings found ")
+                                .response(bookings)
+                                .build());
+            }
+
+            log.info("Found {} bookings ", bookings.size());
+            return ResponseEntity.ok()
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(true)
+                            .message(bookings.size() + " booking(s) found")
+                            .response(bookings)
+                            .build());
+        } catch (Exception e) {
+            log.error("Error fetching bookings {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<List<Booking>>builder()
+                            .isSuccess(false)
+                            .message("Failed to retrieve bookings: " + e.getMessage())
+                            .response(null)
+                            .build());
+        }
+    }
+
 }

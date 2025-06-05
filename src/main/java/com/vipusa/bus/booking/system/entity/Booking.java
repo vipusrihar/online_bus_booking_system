@@ -1,5 +1,6 @@
 package com.vipusa.bus.booking.system.entity;
 
+import com.vipusa.bus.booking.system.defaults.BookingStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,7 +25,7 @@ public class Booking {
     @ManyToOne
     private User user;
 
-    @OneToOne
+    @ManyToOne
     private Trip trip;
 
     @ElementCollection
@@ -33,5 +34,8 @@ public class Booking {
     private LocalDate bookingDate;
 
     private LocalTime bookingTime;
+
+    @Enumerated(EnumType.STRING)
+    private BookingStatus status;
 
 }

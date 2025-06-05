@@ -2,6 +2,8 @@ package com.vipusa.bus.booking.system.request;
 
 import com.vipusa.bus.booking.system.entity.Trip;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,10 +17,10 @@ import java.util.List;
 @NoArgsConstructor
 public class CreateBookingRequest {
 
-    @NotBlank(message = "Trip is important")
-    private Trip trip;
+    @NotNull(message = "Trip is important")
+    private Long tripId;
 
-    @NotBlank(message = "At least one seat ")
+    @NotEmpty(message = "At least one seat ")
     private List<Integer> seatNumbers;
 
 }
