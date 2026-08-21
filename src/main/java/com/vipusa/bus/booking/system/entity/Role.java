@@ -1,7 +1,7 @@
 package com.vipusa.bus.booking.system.entity;
 
-import com.vipusa.bus.booking.system.defaults.USER_ROLE;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 @Data
@@ -17,12 +17,11 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    private USER_ROLE roleName;
+    @NotBlank(message = "Role name is required")
+    @Column(name = "name", nullable = false, unique = true)
+    private String name;
 
-    public Role(USER_ROLE role){
-        this.roleName=role;
+    public Role(String name) {
+        this.name = name;
     }
-
-
 }

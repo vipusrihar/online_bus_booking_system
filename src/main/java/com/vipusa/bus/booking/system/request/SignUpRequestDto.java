@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Set;
 
@@ -17,10 +16,10 @@ import java.util.Set;
 @Setter
 public class SignUpRequestDto {
 
-    @NotBlank(message = "UserName is required")
-    @Size(min = 3, message = "UserName should have at least 3 character")
-    @Size(max = 20, message = "UserName can have 20 character most")
-    private String userName;
+    @NotBlank(message = "Name is required")
+    @Size(min = 3, message = "Name should have at least 3 character")
+    @Size(max = 20, message = "Name can have 20 character most")
+    private String name;
 
     @Email(message = "Email not in a valid form")
     @NotBlank(message = "Email is required")
@@ -33,8 +32,8 @@ public class SignUpRequestDto {
 
     private Set<String> roles;
 
-    public SignUpRequestDto(String userName, String email, String password) {
-        this.userName = userName;
+    public SignUpRequestDto(String name, String email, String password) {
+        this.name = name;
         this.email = email;
         this.password = password;
         this.roles = null;

@@ -1,38 +1,57 @@
 package com.vipusa.bus.booking.system.entity;
 
+import com.vipusa.bus.booking.system.defaults.TripStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
+import org.hibernate.annotations.Check;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
-@Table(name = "Trips")
+@Check(constraints = "arrives_at > departs_at")
+@Table(name = "trips")
 public class Trip {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotNull
     @ManyToOne
-    private Bus bus; // Many trips can use the same bus
+    @JoinColumn(name = "bus_id", nullable = false)
+    private Bus bus;
 
+    @NotNull
     @ManyToOne
-    private Route route; // Many trips can follow the same route
+    @JoinColumn(name = "route_id", nullable = false)
+    private Route route;
 
-    private LocalDate startDate;
-    private LocalTime startTime;
+    @NotNull
+    @Column(name = "departs_at", nullable = false)
+    private LocalDateTime departsAt;
 
-    private LocalDate endDate;
-    private LocalTime endTime;
+    @NotNull
+    @Column(name = "arrives_at", nullable = false)
+    private LocalDateTime arrivesAt;
 
-    @ElementCollection
-    @MapKeyColumn(name = "seat_number")
-    @Column(name = "is_booked")
-    private Map<Integer, Boolean> seatStatus;
+    @NotNull
+    @Positive(message = "Price must be positive")
+    @Column(name = "price", nullable = false)
+    private BigDecimal price;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TripStatus status;
+
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Seat> seats = new ArrayList<>();
 }
