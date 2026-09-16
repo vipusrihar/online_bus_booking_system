@@ -1,18 +1,19 @@
 package com.vipusa.bus.booking.system.service;
 
-import com.vipusa.bus.booking.system.request.EditUserRequest;
 import com.vipusa.bus.booking.system.entity.User;
+import com.vipusa.bus.booking.system.exception.UserNotFoundException;
 import com.vipusa.bus.booking.system.repository.UserRepository;
+import com.vipusa.bus.booking.system.request.EditUserRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
-@Component
-@Transactional
+@Service
 @Slf4j
+@Transactional
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -63,7 +64,6 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll();
     }
 
-
     @Override
     public User editUser(Long userId, EditUserRequest request) {
         if (userId == null || userId < 1) {
@@ -74,9 +74,8 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + userId));
 
-        // Update user fields from request
         if (request.getName() != null) {
             user.setName(request.getName());
         }
@@ -93,7 +92,6 @@ public class UserServiceImpl implements UserService {
             log.warn("Attempt to delete non-existent user with ID: {}", userId);
             return false;
         }
-
         userRepository.deleteById(userId);
         return true;
     }
