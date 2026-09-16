@@ -1,103 +1,107 @@
 package com.vipusa.bus.booking.system.service;
 
-import com.vipusa.bus.booking.system.entity.Bus;
-import com.vipusa.bus.booking.system.repository.RouteRepository;
-import com.vipusa.bus.booking.system.request.CreateRouteRequest;
 import com.vipusa.bus.booking.system.entity.Route;
+import com.vipusa.bus.booking.system.entity.RouteStop;
+import com.vipusa.bus.booking.system.exception.RouteNotFoundException;
+import com.vipusa.bus.booking.system.repository.RouteRepository;
+import com.vipusa.bus.booking.system.repository.RouteStopRepository;
+import com.vipusa.bus.booking.system.request.CreateRouteRequest;
+import com.vipusa.bus.booking.system.request.CreateRouteStopRequest;
 import com.vipusa.bus.booking.system.request.EditRouteRequest;
-import jakarta.persistence.EntityNotFoundException;
-import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-@Component
-public class RouteServiceImpl implements RouteService{
+@Service
+@Slf4j
+public class RouteServiceImpl implements RouteService {
 
     private final RouteRepository routeRepository;
+    private final RouteStopRepository routeStopRepository;
 
-    public RouteServiceImpl(RouteRepository routeRepository){
+    public RouteServiceImpl(RouteRepository routeRepository, RouteStopRepository routeStopRepository) {
         this.routeRepository = routeRepository;
+        this.routeStopRepository = routeStopRepository;
     }
+
     @Override
+    @Transactional
     public Route createRoute(CreateRouteRequest request) {
         Route route = new Route();
         route.setRouteNumber(request.getRouteNumber());
-        route.setDistance(request.getDistance());
         route.setStartLocation(request.getStartLocation());
         route.setEndLocation(request.getEndLocation());
-        route.setStoppingPlaces(request.getStoppingPlaces());
+        route.setDistanceKm(request.getDistanceKm());
 
         Route savedRoute = routeRepository.save(route);
+
+        // Add stops if provided
+        if (request.getStops() != null && !request.getStops().isEmpty()) {
+            for (CreateRouteStopRequest stopReq : request.getStops()) {
+                RouteStop stop = new RouteStop();
+                stop.setRoute(savedRoute);
+                stop.setStopName(stopReq.getStopName());
+                stop.setSequenceOrder(stopReq.getSequenceOrder());
+                routeStopRepository.save(stop);
+            }
+        }
+
         return savedRoute;
     }
 
     @Override
     public List<Route> getRoutesByStopping(String place) {
-        List<Route> routeList = routeRepository.findAll();
-        List<Route> matchedRoutes = new ArrayList<>();
-
-        for (Route route : routeList) {
-            for (String stop : route.getStoppingPlaces()) {
-                if (stop.equalsIgnoreCase(place)) {
-                    matchedRoutes.add(route);
-                    break;
-                }
-            }
-        }
-        return matchedRoutes;
+        return routeRepository.findByStops_StopNameIgnoreCase(place);
     }
-
 
     @Override
     public Route getRouteById(Long routeId) {
-        Route route = routeRepository.findById(routeId).orElseThrow( () -> new RuntimeException("Route Not Found with ID "+ routeId));
-        return route;
+        return routeRepository.findById(routeId)
+                .orElseThrow(() -> new RouteNotFoundException("Route Not Found with ID " + routeId));
     }
 
     @Override
     public List<Route> getAllRoute() {
-        List<Route> routeList = routeRepository.findAll();
-        return routeList;
+        return routeRepository.findAll();
     }
 
     @Override
-    public  Route getRoutByRouteNumber(String routeNumber) {
-        Route route = routeRepository.getRouteByRouteNumber(routeNumber).orElseThrow(() -> new RuntimeException("Route not found with routeNumber" + routeNumber));
-        return route;
+    public Route getRouteByRouteNumber(String routeNumber) {
+        return routeRepository.findByRouteNumber(routeNumber)
+                .orElseThrow(() -> new RouteNotFoundException("Route not found with routeNumber " + routeNumber));
     }
 
     @Override
     public List<Route> getRouteByStartLocation(String startLocation) {
-        List<Route> routeList = routeRepository.getRouteByStartingLocation(startLocation);
-        return routeList;
+        return routeRepository.findByStartLocation(startLocation);
     }
 
     @Override
     public List<Route> getRouteByEndLocation(String endLocation) {
-        List<Route> routeList = routeRepository.getRouteByEndingLocation(endLocation);
-        return routeList;
+        return routeRepository.findByEndLocation(endLocation);
     }
 
     @Override
+    @Transactional
     public boolean deleteRoute(Long routeId) {
         if (!routeRepository.existsById(routeId)) {
-            throw new EntityNotFoundException("Route not found with id: " + routeId);
+            throw new RouteNotFoundException("Route not found with id: " + routeId);
         }
         routeRepository.deleteById(routeId);
         return true;
     }
 
     @Override
+    @Transactional
     public Route changeRouteDetails(Long routeId, EditRouteRequest request) {
         Route route = routeRepository.findById(routeId)
-                .orElseThrow(() -> new EntityNotFoundException("Route not found with ID: " + routeId));
+                .orElseThrow(() -> new RouteNotFoundException("Route not found with ID: " + routeId));
 
         if (request.getRouteNumber() != null) {
             route.setRouteNumber(request.getRouteNumber());
-        }
-        if (request.getDistance() != null) {
-            route.setDistance(request.getDistance());
         }
         if (request.getStartLocation() != null) {
             route.setStartLocation(request.getStartLocation());
@@ -105,11 +109,43 @@ public class RouteServiceImpl implements RouteService{
         if (request.getEndLocation() != null) {
             route.setEndLocation(request.getEndLocation());
         }
-        if (request.getStoppingPlaces() != null && !request.getStoppingPlaces().isEmpty()) {
-            route.setStoppingPlaces(request.getStoppingPlaces());
+        if (request.getDistanceKm() != null) {
+            route.setDistanceKm(request.getDistanceKm());
         }
 
         return routeRepository.save(route);
     }
 
+    @Override
+    @Transactional
+    public Route addStopToRoute(Long routeId, com.vipusa.bus.booking.system.request.CreateRouteStopRequest stopRequest) {
+        Route route = getRouteById(routeId);
+
+        // Check if sequence order already exists
+        if (routeStopRepository.findByRoute_IdAndSequenceOrder(routeId, stopRequest.getSequenceOrder()).isPresent()) {
+            throw new IllegalArgumentException("Sequence order " + stopRequest.getSequenceOrder() + " already exists for this route");
+        }
+
+        RouteStop stop = new RouteStop();
+        stop.setRoute(route);
+        stop.setStopName(stopRequest.getStopName());
+        stop.setSequenceOrder(stopRequest.getSequenceOrder());
+        routeStopRepository.save(stop);
+
+        return route;
+    }
+
+    @Override
+    @Transactional
+    public boolean removeStopFromRoute(Long routeId, Long stopId) {
+        RouteStop stop = routeStopRepository.findById(stopId)
+                .orElseThrow(() -> new IllegalArgumentException("Route stop not found with id: " + stopId));
+
+        if (!stop.getRoute().getId().equals(routeId)) {
+            throw new IllegalArgumentException("Stop does not belong to route " + routeId);
+        }
+
+        routeStopRepository.delete(stop);
+        return true;
+    }
 }
