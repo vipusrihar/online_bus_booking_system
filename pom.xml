@@ -67,6 +67,17 @@
 			<artifactId>jjwt-jackson</artifactId>
 			<version>0.11.5</version>
 		</dependency>
+
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+			<version>10.18.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+			<version>10.18.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -75,7 +86,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.10.1</version> <!-- upgrade version -->
+				<version>3.10.1</version>
 				<configuration>
 					<annotationProcessorPaths>
 						<path>
@@ -87,17 +98,16 @@
 				</configuration>
 			</plugin>
 
-			<!-- spring-boot-maven-plugin with version specified -->
+			<!-- spring-boot-maven-plugin -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<version>3.4.5</version> <!-- Specify the plugin version -->
+				<version>3.4.5</version>
 				<configuration>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
-							<version>1.18.30</version>
 						</exclude>
 					</excludes>
 				</configuration>
