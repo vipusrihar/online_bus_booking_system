@@ -13,16 +13,13 @@ public class RoleFactory {
     @Autowired
     private RoleRepository roleRepository;
 
-    public Role getInstance(String role) throws RoleNotFoundException{
-        switch (role){
-            case "admin" -> {
-                return roleRepository.findByRoleName(USER_ROLE.ADMIN);
-            }
-            case "user"->{
-                return roleRepository.findByRoleName(USER_ROLE.USER);
-            }
-            default ->
-                    throw  new RoleNotFoundException("No role found for " +  role);
+    public Role getInstance(String role) throws RoleNotFoundException {
+        String upperRole = role.toUpperCase();
+        try {
+            USER_ROLE.valueOf(upperRole); // validate
+        } catch (IllegalArgumentException e) {
+            throw new RoleNotFoundException("No role found for " + role);
         }
+        return roleRepository.findByName(upperRole);
     }
 }
