@@ -1,122 +1,245 @@
 package com.vipusa.bus.booking.system.service;
 
-import com.vipusa.bus.booking.system.response.ApiResponse;
-import com.vipusa.bus.booking.system.request.LoginRequestDto;
-import com.vipusa.bus.booking.system.request.SignUpRequestDto;
 import com.vipusa.bus.booking.system.RoleFactory;
 import com.vipusa.bus.booking.system.config.jwt.JwtUtils;
+import com.vipusa.bus.booking.system.entity.RefreshToken;
 import com.vipusa.bus.booking.system.entity.Role;
 import com.vipusa.bus.booking.system.entity.User;
+import com.vipusa.bus.booking.system.exception.InvalidRefreshTokenException;
 import com.vipusa.bus.booking.system.exception.RoleNotFoundException;
 import com.vipusa.bus.booking.system.exception.UserAlreadyExistsException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import com.vipusa.bus.booking.system.repository.RefreshTokenRepository;
+import com.vipusa.bus.booking.system.repository.UserRepository;
+import com.vipusa.bus.booking.system.request.LoginRequestDto;
+import com.vipusa.bus.booking.system.request.SignUpRequestDto;
+import com.vipusa.bus.booking.system.response.AuthResponse;
+import com.vipusa.bus.booking.system.response.UserResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
-@Component
+@Service
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired
-    private UserService userService;
+    private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final RoleFactory roleFactory;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtils jwtUtils;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final SecureRandom secureRandom = new SecureRandom();
 
-    @Autowired
-    private RoleFactory roleFactory;
-
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private JwtUtils jwtUtils;
+    @Value("${app.refresh-token-expiration-ms:604800000}")
+    private long refreshTokenExpirationMs;
 
     @Override
-    public ResponseEntity<ApiResponse<?>> signUpUser(SignUpRequestDto signUpRequestDto)
+    @Transactional
+    public AuthResponse signUpUser(SignUpRequestDto request)
             throws UserAlreadyExistsException, RoleNotFoundException {
-        if (userService.existsByEmail(signUpRequestDto.getEmail())) {
-            throw new UserAlreadyExistsException("Registration Failed: Provided email already exists. Try sign in or provide another email.");
-        }
-        if (userService.existsByUserName(signUpRequestDto.getUserName())) {
-            throw new UserAlreadyExistsException("Registration Failed: Provided username already exists. Try sign in or provide another username.");
-        }
 
-        User user = createUser(signUpRequestDto);
-        userService.save(user);
+        validateUserDoesNotExist(request);
 
-        // Authenticate the user to generate token
-        /*
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        signUpRequestDto.getEmail(),
-                        signUpRequestDto.getPassword()
-                )
+        User user = createUser(request);
+
+        User savedUser = userRepository.save(user);
+
+        Authentication authentication = authenticate(request.getEmail(), request.getPassword());
+
+        String accessToken = jwtUtils.generateJwtToken(authentication);
+
+        String refreshToken = createRefreshToken(savedUser);
+
+        UserResponse userResponse = mapToUserResponse(savedUser);
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                userResponse
         );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwtToken = jwtUtils.generateJwtToken(authentication);
+    }
 
-        */
 
-        String token = jwtUtils.generateTokenFromEmail(user.getEmail());
+    @Override
+    @Transactional
+    public AuthResponse loginUser(LoginRequestDto request) {
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(
-                ApiResponse.builder()
-                        .isSuccess(true)
-                        .message("User account has been successfully created!")
-                        .response(token) // Include the JWT token in response
-                        .build()
+        Authentication authentication = authenticate( request.getEmail(), request.getPassword());
+
+        String accessToken = jwtUtils.generateJwtToken(authentication);
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new IllegalStateException( "Authenticated user was not found"));
+
+        String refreshToken = createRefreshToken(user);
+
+        UserResponse userResponse = mapToUserResponse(user);
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                userResponse
         );
     }
 
     @Override
-    public ResponseEntity<ApiResponse<?>> loginUser(LoginRequestDto loginRequestDto) {
-        User user = userService.findByEmail(loginRequestDto.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email Not Registered"));
+    @Transactional
+    public AuthResponse refreshToken(String rawRefreshToken) {
 
-        if (passwordEncoder.matches(loginRequestDto.getPassword(), user.getPassword())) {
-            String token = jwtUtils.generateTokenFromEmail(loginRequestDto.getEmail());
-            return ResponseEntity.ok(
-                    ApiResponse.builder()
-                            .isSuccess(true)
-                            .message("Successfully Logged in")
-                            .response(token)
-                            .build()
-            );
-        }
+        String tokenHash = hashToken(rawRefreshToken);
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                ApiResponse.builder()
-                        .isSuccess(false)
-                        .message("Invalid credentials")
-                        .response(null)
-                        .build()
+        RefreshToken refreshToken =
+                refreshTokenRepository.findByTokenHash(tokenHash).map(this::verifyRefreshToken)
+                        .orElseThrow(() ->
+                                new InvalidRefreshTokenException(
+                                        "Invalid or expired refresh token"));
+
+        User user = refreshToken.getUser();
+
+        refreshTokenRepository.delete(refreshToken);
+
+        String newAccessToken = jwtUtils.generateTokenFromEmail(user.getEmail());
+
+        String newRefreshToken = createRefreshToken(user);
+
+        UserResponse userResponse = mapToUserResponse(user);
+
+        return new AuthResponse(
+                newAccessToken,
+                newRefreshToken,
+                userResponse
         );
     }
-    private User createUser(SignUpRequestDto signUpRequestDto) throws RoleNotFoundException {
+
+
+    @Override
+    @Transactional
+    public void logout(String rawRefreshToken) {
+
+        String tokenHash = hashToken(rawRefreshToken);
+
+        refreshTokenRepository .findByTokenHash(tokenHash)
+                .ifPresent(refreshTokenRepository::delete);
+    }
+
+
+    private Authentication authenticate(String email,String password) {
+
+        Authentication authentication =
+                authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(email, password));
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        return authentication;
+    }
+
+
+    private void validateUserDoesNotExist( SignUpRequestDto request) throws UserAlreadyExistsException {
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new UserAlreadyExistsException("Provided email already exists");
+        }
+
+        if (userRepository.existsByName(request.getName())) {
+            throw new UserAlreadyExistsException("Provided username already exists");
+        }
+    }
+
+
+    private User createUser(SignUpRequestDto request ) throws RoleNotFoundException {
+
         return User.builder()
-                .email(signUpRequestDto.getEmail())
-                .name(signUpRequestDto.getUserName())
-                .password(passwordEncoder.encode(signUpRequestDto.getPassword()))
-                .enable(true)
-                .roles(determineRoles(signUpRequestDto.getRoles()))
+                .email(request.getEmail())
+                .name(request.getName())
+                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                .enabled(true)
+                .roles(determineRoles(request.getRoles()))
                 .build();
     }
 
-    private Set<Role> determineRoles(Set<String> strRoles) throws RoleNotFoundException {
+    private Set<Role> determineRoles(Set<String> requestedRoles) throws RoleNotFoundException {
+
         Set<Role> roles = new HashSet<>();
-        if (strRoles == null) {
+        if (requestedRoles == null || requestedRoles.isEmpty()) {
             roles.add(roleFactory.getInstance("USER"));
-        } else {
-            for (String role : strRoles) {
-                roles.add(roleFactory.getInstance(role));
-            }
+            return roles;
+        }
+
+        for (String role : requestedRoles) {
+            roles.add(roleFactory.getInstance(role));
         }
         return roles;
+    }
+
+
+    private String createRefreshToken(User user) {
+        refreshTokenRepository.deleteByUser_Id(user.getId());
+        String rawToken = generateSecureToken();
+        String tokenHash = hashToken(rawToken);
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setUser(user);
+        refreshToken.setTokenHash(tokenHash);
+        refreshToken.setExpiresAt(Instant.now().plusMillis(refreshTokenExpirationMs));
+        refreshToken.setRevoked(false);
+        refreshTokenRepository.save(refreshToken);
+        return rawToken;
+    }
+
+    private String generateSecureToken() {
+        byte[] randomBytes = new byte[64];
+        secureRandom.nextBytes(randomBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    }
+
+    private String hashToken(String token) {
+
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 algorithm is not available", exception);
+        }
+    }
+
+    private RefreshToken verifyRefreshToken( RefreshToken token ) {
+
+        if (token.isRevoked()) {
+            throw new InvalidRefreshTokenException("Refresh token has been revoked");
+        }
+
+        if (token.getExpiresAt().isBefore(Instant.now())) {
+            refreshTokenRepository.delete(token);
+            throw new InvalidRefreshTokenException("Refresh token has expired");
+        }
+
+        return token;
+    }
+
+    private UserResponse mapToUserResponse(User user) {
+
+        return UserResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .build();
     }
 }
